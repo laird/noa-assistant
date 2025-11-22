@@ -11,6 +11,9 @@
 !docs/noa_assistant.drawio.png
 !.env.example
 !requirements.txt
+!CLAUDE.md
+!README.md
+!LICENSE.md
 __pycache__
 dev_deploy.sh
 load_audio.sh
