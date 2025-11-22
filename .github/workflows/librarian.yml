@@ -1,0 +1,148 @@
+name: Librarian Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Allow manual trigger
+  schedule:
+    # Run weekly on Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Run Librarian Analysis
+      id: librarian
+      run: |
+        echo "Running librarian analysis..."
+        python3 librarian.py --output librarian_report.json || true
+
+        # Extract summary
+        if [ -f librarian_report.json ]; then
+          echo "Report generated successfully"
+
+          # Get counts by severity
+          critical=$(jq -r '.summary.by_severity.critical // 0' librarian_report.json)
+          high=$(jq -r '.summary.by_severity.high // 0' librarian_report.json)
+          medium=$(jq -r '.summary.by_severity.medium // 0' librarian_report.json)
+          low=$(jq -r '.summary.by_severity.low // 0' librarian_report.json)
+          total=$(jq -r '.summary.total_issues // 0' librarian_report.json)
+
+          echo "critical=$critical" >> $GITHUB_OUTPUT
+          echo "high=$high" >> $GITHUB_OUTPUT
+          echo "medium=$medium" >> $GITHUB_OUTPUT
+          echo "low=$low" >> $GITHUB_OUTPUT
+          echo "total=$total" >> $GITHUB_OUTPUT
+
+          # Create summary
+          echo "## 📊 Librarian Analysis Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Issues:** $total" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔴 Critical | $critical |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟠 High | $high |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 Medium | $medium |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟢 Low | $low |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload Report Artifact
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: librarian-report
+        path: librarian_report.json
+        retention-days: 30
+
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const fs = require('fs');
+
+          if (!fs.existsSync('librarian_report.json')) {
+            return;
+          }
+
+          const report = JSON.parse(fs.readFileSync('librarian_report.json', 'utf8'));
+          const summary = report.summary;
+
+          const critical = summary.by_severity?.critical || 0;
+          const high = summary.by_severity?.high || 0;
+          const medium = summary.by_severity?.medium || 0;
+          const low = summary.by_severity?.low || 0;
+          const total = summary.total_issues || 0;
+
+          let emoji = '✅';
+          if (critical > 0) emoji = '🔴';
+          else if (high > 0) emoji = '🟠';
+          else if (medium > 0) emoji = '🟡';
+
+          const body = `## ${emoji} Librarian Code Quality Report
+
+          **Total Issues Found:** ${total}
+
+          | Severity | Count |
+          |----------|-------|
+          | 🔴 Critical | ${critical} |
+          | 🟠 High | ${high} |
+          | 🟡 Medium | ${medium} |
+          | 🟢 Low | ${low} |
+
+          ${critical > 0 ? '⚠️ **Critical issues detected!** Please address before merging.' : ''}
+          ${high > 0 ? '⚠️ High priority issues should be addressed soon.' : ''}
+
+          <details>
+          <summary>View detailed report</summary>
+
+          Download the full report from the workflow artifacts.
+
+          </details>
+          `;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+
+    - name: Check for Critical Issues
+      if: steps.librarian.outputs.critical > 0
+      run: |
+        echo "::warning::Found ${{ steps.librarian.outputs.critical }} critical issue(s)"
+        echo "Critical issues detected! Review the report for details."
+        # Don't fail the workflow, just warn
+        # Uncomment below to fail on critical issues:
+        # exit 1
+
+    - name: Generate Badge
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        total=${{ steps.librarian.outputs.total }}
+        critical=${{ steps.librarian.outputs.critical }}
+
+        if [ "$critical" -gt 0 ]; then
+          color="critical"
+        elif [ "$total" -gt 10 ]; then
+          color="yellow"
+        else
+          color="success"
+        fi
+
+        echo "Badge: issues-$total-$color"

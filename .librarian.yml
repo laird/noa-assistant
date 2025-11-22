@@ -1,0 +1,67 @@
+# Librarian Configuration
+# Configure how the librarian analyzes your codebase
+
+# Severity levels to check (higher levels include all lower levels)
+# Options: critical, high, medium, low, info
+min_severity: medium
+
+# Categories to analyze
+# Options: security, quality, performance, documentation, dependencies
+categories:
+  - security
+  - quality
+  - performance
+  - documentation
+  - dependencies
+
+# Files and directories to exclude from analysis
+exclude:
+  - .venv/
+  - venv/
+  - __pycache__/
+  - .git/
+  - node_modules/
+  - "*.pyc"
+  - .pytest_cache/
+  - .tox/
+
+# Security checks
+security:
+  check_hardcoded_secrets: true
+  check_sql_injection: true
+  check_shell_injection: true
+  check_eval_usage: true
+
+# Quality checks
+quality:
+  check_print_statements: true
+  check_bare_except: true
+  check_todo_comments: true
+  check_code_complexity: false  # Not implemented yet
+
+# Performance checks
+performance:
+  check_string_concat: true
+  check_inefficient_loops: false  # Not implemented yet
+
+# Documentation checks
+documentation:
+  require_docstrings: false  # Not implemented yet
+  check_readme: true
+  required_readme_sections:
+    - Setup
+    - API
+    - Usage
+
+# Dependency checks
+dependencies:
+  check_pinned_versions: true
+  check_outdated: false  # Requires network access
+  check_vulnerabilities: false  # Requires network access
+
+# Reporting
+reporting:
+  output_format: json  # Options: json, markdown, html
+  save_to_file: true
+  output_file: librarian_report.json
+  verbose: true

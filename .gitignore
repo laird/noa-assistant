@@ -9,8 +9,11 @@
 *.html
 *.wav
 !docs/noa_assistant.drawio.png
+!docs/LIBRARIAN.md
 !.env.example
 !requirements.txt
+!.librarian.yml
+!README.md
 __pycache__
 dev_deploy.sh
 load_audio.sh

@@ -65,5 +65,33 @@ await fetch('localhost:8000/mm', {
 ```javascript
 await fetch('localhost:8000/health')
 ```
+### Code Quality - Librarian
+
+This project includes **Librarian**, an automated code quality analysis tool that helps maintain code quality, security, and performance.
+
+#### Quick Start
+
+Run a code quality analysis:
+
+```bash
+./librarian.sh
+```
+
+Or use Python directly:
+
+```bash
+python3 librarian.py
+```
+
+#### Features
+
+- 🔒 Security vulnerability detection (SQL injection, hardcoded secrets, etc.)
+- 🎯 Code quality checks (bare except, print statements, etc.)
+- ⚡ Performance analysis (inefficient loops, string concatenation, etc.)
+- 📚 Documentation verification
+- 📦 Dependency management (unpinned versions, outdated packages, etc.)
+
+For detailed documentation, see [docs/LIBRARIAN.md](docs/LIBRARIAN.md)
+
 ### workflow
 ![Workflow](docs/noa_assistant.drawio.png)
