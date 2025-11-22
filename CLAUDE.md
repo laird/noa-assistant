@@ -63,6 +63,22 @@ Generate markdown report from benchmarks:
 python run_benchmark.py tests/tests.json --markdown
 ```
 
+Run benchmarks against localhost (uses different request format):
+```bash
+python run_benchmark.py tests/tests.json --endpoint localhost
+```
+
+## API Endpoints
+
+### POST /mm
+Main multimodal endpoint that processes user queries with optional audio/image.
+
+### GET /health
+Health check endpoint that returns `{"status": 200, "message": "running ok"}`.
+
+### POST /extract_learned_context
+Extracts learned context (user facts) from conversation history. Takes `messages` and `existing_learned_context`, returns updated `learned_context` dictionary.
+
 ## Architecture
 
 ### Plugin Provider System
@@ -121,7 +137,12 @@ Assistants use function calling to invoke tools:
 - `analyze_photo` - Vision analysis of user's camera feed
 - `generate_image` - Image generation from description
 
-The vision tool can trigger a follow-up web search if needed (e.g., for reverse image search or identifying objects).
+**Vision-to-WebSearch Chaining**: The vision tool returns a `VisionOutput` with:
+- `response`: Visual analysis result
+- `web_query`: Optional search query to run (populated by vision model)
+- `reverse_image_search`: Boolean flag for image-based search
+
+When `web_query` is populated, the assistant automatically performs a follow-up web search using either text search or reverse image search. This enables complex queries like "where can I buy this?" to first identify the object visually, then search for purchase options.
 
 ### Provider Selection
 
@@ -155,6 +176,27 @@ The benchmark system (`run_benchmark.py`) evaluates assistant quality:
 - Conversations are sequences of user messages
 - Messages can specify expected capabilities that should be used
 - Supports default images for all messages in a test
+
+Example test structure:
+```json
+{
+  "active": true,
+  "name": "vision_test",
+  "default_image": "tests/images/example.jpg",
+  "conversations": [
+    [
+      "what is this?",
+      {
+        "text": "where can I buy this?",
+        "image": "tests/images/product.jpg",
+        "capabilities": ["vision", "web_search"]
+      }
+    ]
+  ]
+}
+```
+
+Available capability types: `assistant_knowledge`, `web_search`, `vision`, `reverse_image_search`, `image_generation`
 
 **Evaluation**:
 - Checks if required capabilities were used (web search, vision, etc.)
