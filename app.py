@@ -312,7 +312,7 @@ if __name__ == "__main__":
     # AI clients
     app.state.openai_client = openai.AsyncOpenAI()
     app.state.anthropic_client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
-    app.state.groq_client = groq.AsyncGroq()
+    app.state.groq_client = groq.AsyncGroq() if os.environ.get("GROQ_API_KEY") else None
 
     # Instantiate a default web search provider
     app.state.web_search = None
